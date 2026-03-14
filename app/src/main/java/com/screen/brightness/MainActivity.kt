@@ -1,13 +1,20 @@
 package com.screen.brightness
 
 import android.Manifest
+import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.view.Gravity
+import android.view.View
 import android.widget.Button
+import android.widget.LinearLayout
+import android.widget.SeekBar
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
@@ -18,6 +25,19 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
     private lateinit var actionButton: Button
+    private lateinit var previewButton: TextView
+
+    private val bgColors = intArrayOf(
+        0x80333333.toInt(), 0x80000000.toInt(), 0x801565C0.toInt(),
+        0x80C62828.toInt(), 0x802E7D32.toInt(), 0x80FF8F00.toInt()
+    )
+
+    private val fgColors = intArrayOf(
+        0xFFFFFFFF.toInt(), 0xFFFFEB3B.toInt(), 0xFFFF5722.toInt(),
+        0xFF4CAF50.toInt(), 0xFF2196F3.toInt(), 0xFF000000.toInt()
+    )
+
+    private val icons = arrayOf("☀", "🔆", "💡", "⚡", "🌟", "○")
 
     private val notificationPermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestPermission()
@@ -35,10 +55,13 @@ class MainActivity : AppCompatActivity() {
 
         statusText = findViewById(R.id.status_text)
         actionButton = findViewById(R.id.action_button)
+        previewButton = findViewById(R.id.preview_button)
 
         actionButton.setOnClickListener {
             checkPermissionsAndStart()
         }
+
+        setupSettings()
     }
 
     override fun onResume() {
@@ -81,12 +104,15 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             else -> {
-                startFloatingService()
+                if (!isServiceRunning()) {
+                    startFloatingService()
+                }
                 updateStatus(getString(R.string.status_running))
                 actionButton.text = getString(R.string.btn_stop)
                 actionButton.setOnClickListener {
                     stopService(Intent(this, FloatingButtonService::class.java))
-                    Toast.makeText(this, getString(R.string.toast_stopped), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this, getString(R.string.toast_stopped), Toast.LENGTH_SHORT)
+                        .show()
                     updateStatus(getString(R.string.status_stopped))
                     actionButton.text = getString(R.string.btn_start)
                     actionButton.setOnClickListener {
@@ -97,12 +123,174 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun isServiceRunning(): Boolean {
+        val manager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        @Suppress("DEPRECATION")
+        for (service in manager.getRunningServices(Int.MAX_VALUE)) {
+            if (FloatingButtonService::class.java.name == service.service.className) {
+                return true
+            }
+        }
+        return false
+    }
+
     private fun startFloatingService() {
         val intent = Intent(this, FloatingButtonService::class.java)
         startForegroundService(intent)
     }
 
+    private fun sendRefreshIntent() {
+        if (isServiceRunning()) {
+            val intent = Intent(this, FloatingButtonService::class.java).apply {
+                action = FloatingButtonService.ACTION_REFRESH
+            }
+            startService(intent)
+        }
+    }
+
     private fun updateStatus(text: String) {
         statusText.text = text
+    }
+
+    // --- 设置 UI ---
+
+    private fun setupSettings() {
+        updatePreview()
+        setupColorRow(findViewById(R.id.bg_color_row), bgColors, AppPrefs.getBgColor(this)) { color ->
+            AppPrefs.setBgColor(this, color)
+            updatePreview()
+            sendRefreshIntent()
+        }
+        setupColorRow(findViewById(R.id.fg_color_row), fgColors, AppPrefs.getFgColor(this)) { color ->
+            AppPrefs.setFgColor(this, color)
+            updatePreview()
+            sendRefreshIntent()
+        }
+        setupIconRow()
+        setupAlphaSeekBar()
+        setupSizeSeekBar()
+    }
+
+    private fun updatePreview() {
+        val bgColor = AppPrefs.getBgColor(this)
+        val fgColor = AppPrefs.getFgColor(this)
+        val alpha = AppPrefs.getAlpha(this)
+        val icon = AppPrefs.getIcon(this)
+        val sizeDp = AppPrefs.getSize(this)
+
+        val sizePx = (sizeDp * resources.displayMetrics.density).toInt()
+
+        previewButton.text = icon
+        previewButton.textSize = (sizeDp * 0.43f)
+        previewButton.setTextColor(fgColor)
+        previewButton.alpha = alpha
+        previewButton.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(bgColor)
+        }
+        previewButton.layoutParams = previewButton.layoutParams.apply {
+            width = sizePx
+            height = sizePx
+        }
+    }
+
+    private fun setupColorRow(
+        container: LinearLayout,
+        colors: IntArray,
+        selectedColor: Int,
+        onSelect: (Int) -> Unit
+    ) {
+        container.removeAllViews()
+        val circleSize = (36 * resources.displayMetrics.density).toInt()
+        val margin = (8 * resources.displayMetrics.density).toInt()
+
+        for (color in colors) {
+            val view = View(this).apply {
+                background = GradientDrawable().apply {
+                    shape = GradientDrawable.OVAL
+                    setColor(color)
+                    if (color == selectedColor) {
+                        setStroke(
+                            (3 * resources.displayMetrics.density).toInt(),
+                            ContextCompat.getColor(this@MainActivity, R.color.accent)
+                        )
+                    }
+                }
+                layoutParams = LinearLayout.LayoutParams(circleSize, circleSize).apply {
+                    setMargins(margin, 0, margin, 0)
+                }
+                setOnClickListener {
+                    onSelect(color)
+                    setupColorRow(container, colors, color, onSelect)
+                }
+            }
+            container.addView(view)
+        }
+    }
+
+    private fun setupIconRow() {
+        val container = findViewById<LinearLayout>(R.id.icon_row)
+        container.removeAllViews()
+        val selectedIcon = AppPrefs.getIcon(this)
+        val padding = (8 * resources.displayMetrics.density).toInt()
+
+        for (icon in icons) {
+            val tv = TextView(this).apply {
+                text = icon
+                textSize = 28f
+                gravity = Gravity.CENTER
+                setPadding(padding, padding, padding, padding)
+                if (icon == selectedIcon) {
+                    setBackgroundColor(Color.parseColor("#30000000"))
+                }
+                setOnClickListener {
+                    AppPrefs.setIcon(this@MainActivity, icon)
+                    setupIconRow()
+                    updatePreview()
+                    sendRefreshIntent()
+                }
+            }
+            container.addView(tv)
+        }
+    }
+
+    private fun setupAlphaSeekBar() {
+        val seekBar = findViewById<SeekBar>(R.id.alpha_seekbar)
+        val currentAlpha = AppPrefs.getAlpha(this)
+        // SeekBar range: 0~80 maps to 0.2~1.0
+        seekBar.progress = ((currentAlpha - 0.2f) * 100).toInt()
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val alpha = 0.2f + progress / 100f
+                AppPrefs.setAlpha(this@MainActivity, alpha)
+                updatePreview()
+                sendRefreshIntent()
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+    }
+
+    private fun setupSizeSeekBar() {
+        val seekBar = findViewById<SeekBar>(R.id.size_seekbar)
+        val currentSize = AppPrefs.getSize(this)
+        // SeekBar range: 0~40 maps to 40~80dp
+        seekBar.progress = currentSize - 40
+
+        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
+                if (!fromUser) return
+                val sizeDp = 40 + progress
+                AppPrefs.setSize(this@MainActivity, sizeDp)
+                updatePreview()
+                sendRefreshIntent()
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
     }
 }

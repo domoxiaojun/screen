@@ -12,6 +12,12 @@ object BrightnessHelper {
     var isMaxBrightness = false
         private set
 
+    fun init(context: Context) {
+        isMaxBrightness = AppPrefs.getIsMaxBrightness(context)
+        savedBrightness = AppPrefs.getSavedBrightness(context)
+        savedAutoBrightness = AppPrefs.getSavedAutoBrightness(context)
+    }
+
     fun getCurrentBrightness(contentResolver: ContentResolver): Int {
         return try {
             Settings.System.getInt(contentResolver, Settings.System.SCREEN_BRIGHTNESS)
@@ -35,6 +41,8 @@ object BrightnessHelper {
         val contentResolver = context.contentResolver
         savedBrightness = getCurrentBrightness(contentResolver)
         savedAutoBrightness = isAutoBrightness(contentResolver)
+
+        AppPrefs.saveBrightnessState(context, savedBrightness, savedAutoBrightness)
 
         Settings.System.putInt(
             contentResolver,
@@ -67,6 +75,7 @@ object BrightnessHelper {
             )
         }
         isMaxBrightness = false
+        AppPrefs.clearBrightnessState(context)
     }
 
     fun toggleBrightness(context: Context) {

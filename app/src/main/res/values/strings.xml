@@ -8,7 +8,7 @@
     <string name="notification_title">亮度快切运行中</string>
     <string name="notification_text">点击悬浮按钮切换最高亮度</string>
 
-    <string name="usage_guide">使用说明：\n\n1. 授予悬浮窗和修改设置权限\n2. 屏幕上出现半透明太阳按钮\n3. 点击按钮：切换最高亮度\n4. 拖动按钮：调整位置</string>
+    <string name="usage_guide">使用说明：\n\n1. 授予悬浮窗和修改设置权限\n2. 屏幕上出现半透明太阳按钮\n3. 点击按钮：切换最高亮度\n4. 拖动按钮：调整位置（松手自动吸附边缘）</string>
 
     <string name="status_checking">检查权限中…</string>
     <string name="status_overlay_needed">需要悬浮窗权限</string>
@@ -25,4 +25,12 @@
     <string name="btn_grant_notification">授予通知权限</string>
 
     <string name="toast_stopped">悬浮按钮已关闭</string>
+
+    <!-- 设置相关 -->
+    <string name="settings_title">个性化设置</string>
+    <string name="settings_bg_color">背景颜色</string>
+    <string name="settings_fg_color">图标颜色</string>
+    <string name="settings_icon">按钮图标</string>
+    <string name="settings_alpha">按钮透明度</string>
+    <string name="settings_size">按钮大小</string>
 </resources>
