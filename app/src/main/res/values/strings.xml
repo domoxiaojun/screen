@@ -26,14 +26,29 @@
 
     <string name="toast_stopped">悬浮按钮已关闭</string>
 
-    <!-- 设置相关 -->
-    <string name="settings_title">个性化设置</string>
+    <!-- 亮度按钮设置 -->
+    <string name="settings_title">亮度按钮设置</string>
     <string name="settings_bg_color">背景颜色</string>
     <string name="settings_fg_color">图标颜色</string>
     <string name="settings_icon">按钮图标</string>
-    <string name="settings_alpha">按钮透明度</string>
+    <string name="settings_icon_alpha">图标透明度</string>
+    <string name="settings_bg_alpha">背景透明度</string>
     <string name="settings_size">按钮大小</string>
     <string name="settings_import_svg">导入</string>
     <string name="toast_svg_imported">SVG图标已导入</string>
     <string name="toast_svg_error">无法加载SVG文件</string>
+
+    <!-- 返回按钮设置 -->
+    <string name="back_settings_title">返回悬浮按钮</string>
+    <string name="back_btn_enable">启用返回按钮</string>
+    <string name="back_btn_hint">单击 = 返回，长按 = 回到桌面</string>
+    <string name="back_accessibility_needed">需要开启无障碍服务</string>
+    <string name="btn_grant_accessibility">开启无障碍服务</string>
+    <string name="back_service_running">返回按钮已启动</string>
+    <string name="back_service_description">提供悬浮返回按钮，单击执行返回操作，长按返回桌面</string>
+    <string name="back_settings_bg_color">背景颜色</string>
+    <string name="back_settings_fg_color">图标颜色</string>
+    <string name="back_settings_icon_alpha">图标透明度</string>
+    <string name="back_settings_bg_alpha">背景透明度</string>
+    <string name="back_settings_size">按钮大小</string>
 </resources>

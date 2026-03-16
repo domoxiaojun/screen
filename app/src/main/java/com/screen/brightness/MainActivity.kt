@@ -2,6 +2,7 @@ package com.screen.brightness
 
 import android.Manifest
 import android.app.ActivityManager
+import android.content.ComponentName
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -23,16 +24,23 @@ import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import com.google.android.material.switchmaterial.SwitchMaterial
 
 class MainActivity : AppCompatActivity() {
 
     private lateinit var statusText: TextView
     private lateinit var actionButton: Button
     private lateinit var previewButton: ImageView
+    private lateinit var backPreviewButton: ImageView
+    private lateinit var backSwitch: SwitchMaterial
+    private lateinit var backAccessibilityStatus: TextView
+    private lateinit var btnGrantAccessibility: Button
+    private lateinit var backSettingsContainer: LinearLayout
 
+    // 不透明色，透明度由 SeekBar 独立控制
     private val bgColors = intArrayOf(
-        0x80333333.toInt(), 0x80000000.toInt(), 0x801565C0.toInt(),
-        0x80C62828.toInt(), 0x802E7D32.toInt(), 0x80FF8F00.toInt()
+        0xFF333333.toInt(), 0xFF000000.toInt(), 0xFF1565C0.toInt(),
+        0xFFC62828.toInt(), 0xFF2E7D32.toInt(), 0xFFFF8F00.toInt()
     )
 
     private val fgColors = intArrayOf(
@@ -59,23 +67,33 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        AppPrefs.migrateIfNeeded(this)
         setContentView(R.layout.activity_main)
 
         statusText = findViewById(R.id.status_text)
         actionButton = findViewById(R.id.action_button)
         previewButton = findViewById(R.id.preview_button)
+        backPreviewButton = findViewById(R.id.back_preview_button)
+        backSwitch = findViewById(R.id.back_btn_switch)
+        backAccessibilityStatus = findViewById(R.id.back_accessibility_status)
+        btnGrantAccessibility = findViewById(R.id.btn_grant_accessibility)
+        backSettingsContainer = findViewById(R.id.back_settings_container)
 
         actionButton.setOnClickListener {
             checkPermissionsAndStart()
         }
 
-        setupSettings()
+        setupBrightnessSettings()
+        setupBackButtonSettings()
     }
 
     override fun onResume() {
         super.onResume()
         checkPermissionsAndStart()
+        updateBackButtonUI()
     }
+
+    // --- 权限检查与亮度服务启动 ---
 
     private fun checkPermissionsAndStart() {
         when {
@@ -143,8 +161,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startFloatingService() {
-        val intent = Intent(this, FloatingButtonService::class.java)
-        startForegroundService(intent)
+        startForegroundService(Intent(this, FloatingButtonService::class.java))
     }
 
     private fun sendRefreshIntent() {
@@ -197,9 +214,9 @@ class MainActivity : AppCompatActivity() {
         return null
     }
 
-    // --- 设置 UI ---
+    // --- 亮度按钮设置 ---
 
-    private fun setupSettings() {
+    private fun setupBrightnessSettings() {
         updatePreview()
         setupColorRow(findViewById(R.id.bg_color_row), bgColors, AppPrefs.getBgColor(this)) { color ->
             AppPrefs.setBgColor(this, color)
@@ -212,24 +229,28 @@ class MainActivity : AppCompatActivity() {
             sendRefreshIntent()
         }
         setupIconRow()
-        setupAlphaSeekBar()
+        setupIconAlphaSeekBar()
+        setupBgAlphaSeekBar()
         setupSizeSeekBar()
     }
 
     private fun updatePreview() {
         val bgColor = AppPrefs.getBgColor(this)
         val fgColor = AppPrefs.getFgColor(this)
-        val alpha = AppPrefs.getAlpha(this)
+        val iconAlpha = AppPrefs.getIconAlpha(this)
+        val bgAlpha = AppPrefs.getBgAlpha(this)
         val sizeDp = AppPrefs.getSize(this)
         val sizePx = (sizeDp * resources.displayMetrics.density).toInt()
         val iconPadding = (sizePx * 0.22f).toInt()
 
         previewButton.setImageDrawable(IconHelper.loadIconDrawable(this))
+        val colorWithAlpha = (bgAlpha shl 24) or (bgColor and 0x00FFFFFF)
         previewButton.background = GradientDrawable().apply {
             shape = GradientDrawable.OVAL
-            setColor(bgColor)
+            setColor(colorWithAlpha)
         }
-        previewButton.alpha = alpha
+        previewButton.imageAlpha = iconAlpha
+        previewButton.alpha = 1.0f
         previewButton.setPadding(iconPadding, iconPadding, iconPadding, iconPadding)
         previewButton.layoutParams = previewButton.layoutParams.apply {
             width = sizePx
@@ -307,7 +328,6 @@ class MainActivity : AppCompatActivity() {
             container.addView(iv)
         }
 
-        // 自定义 SVG 已导入时显示
         if (selectedType == "custom") {
             val customIv = ImageView(this).apply {
                 setImageDrawable(IconHelper.loadIconDrawable(this@MainActivity))
@@ -321,7 +341,6 @@ class MainActivity : AppCompatActivity() {
             container.addView(customIv)
         }
 
-        // 导入按钮
         val importBtn = TextView(this).apply {
             text = getString(R.string.settings_import_svg)
             textSize = 13f
@@ -334,41 +353,162 @@ class MainActivity : AppCompatActivity() {
         container.addView(importBtn)
     }
 
-    private fun setupAlphaSeekBar() {
-        val seekBar = findViewById<SeekBar>(R.id.alpha_seekbar)
-        val currentAlpha = AppPrefs.getAlpha(this)
-        seekBar.progress = ((currentAlpha - 0.2f) * 100).toInt()
+    private fun setupIconAlphaSeekBar() {
+        val seekBar = findViewById<SeekBar>(R.id.icon_alpha_seekbar)
+        seekBar.progress = AppPrefs.getIconAlpha(this)
+        seekBar.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
+            AppPrefs.setIconAlpha(this, progress)
+            updatePreview()
+            sendRefreshIntent()
+        })
+    }
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
-                val alpha = 0.2f + progress / 100f
-                AppPrefs.setAlpha(this@MainActivity, alpha)
-                updatePreview()
-                sendRefreshIntent()
-            }
-
-            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+    private fun setupBgAlphaSeekBar() {
+        val seekBar = findViewById<SeekBar>(R.id.bg_alpha_seekbar)
+        seekBar.progress = AppPrefs.getBgAlpha(this)
+        seekBar.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
+            AppPrefs.setBgAlpha(this, progress)
+            updatePreview()
+            sendRefreshIntent()
         })
     }
 
     private fun setupSizeSeekBar() {
         val seekBar = findViewById<SeekBar>(R.id.size_seekbar)
-        val currentSize = AppPrefs.getSize(this)
-        seekBar.progress = currentSize - 40
+        seekBar.progress = AppPrefs.getSize(this) - 40
+        seekBar.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
+            AppPrefs.setSize(this, 40 + progress)
+            updatePreview()
+            sendRefreshIntent()
+        })
+    }
 
-        seekBar.setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+    // --- 返回按钮设置 ---
+
+    private fun setupBackButtonSettings() {
+        updateBackPreview()
+        backSwitch.isChecked = AppPrefs.isBackEnabled(this)
+        backSwitch.setOnCheckedChangeListener { _, checked ->
+            AppPrefs.setBackEnabled(this, checked)
+            updateBackButtonUI()
+            sendBackRefreshIntent()
+        }
+
+        btnGrantAccessibility.setOnClickListener {
+            val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS)
+            startActivity(intent)
+        }
+
+        setupColorRow(
+            findViewById(R.id.back_bg_color_row), bgColors,
+            AppPrefs.getBackBgColor(this)
+        ) { color ->
+            AppPrefs.setBackBgColor(this, color)
+            updateBackPreview()
+            sendBackRefreshIntent()
+        }
+        setupColorRow(
+            findViewById(R.id.back_fg_color_row), fgColors,
+            AppPrefs.getBackFgColor(this)
+        ) { color ->
+            AppPrefs.setBackFgColor(this, color)
+            updateBackPreview()
+            sendBackRefreshIntent()
+        }
+
+        val backIconAlphaSeekBar = findViewById<SeekBar>(R.id.back_icon_alpha_seekbar)
+        backIconAlphaSeekBar.progress = AppPrefs.getBackIconAlpha(this)
+        backIconAlphaSeekBar.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
+            AppPrefs.setBackIconAlpha(this, progress)
+            updateBackPreview()
+            sendBackRefreshIntent()
+        })
+
+        val backBgAlphaSeekBar = findViewById<SeekBar>(R.id.back_bg_alpha_seekbar)
+        backBgAlphaSeekBar.progress = AppPrefs.getBackBgAlpha(this)
+        backBgAlphaSeekBar.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
+            AppPrefs.setBackBgAlpha(this, progress)
+            updateBackPreview()
+            sendBackRefreshIntent()
+        })
+
+        val backSizeSeekBar = findViewById<SeekBar>(R.id.back_size_seekbar)
+        backSizeSeekBar.progress = AppPrefs.getBackSize(this) - 40
+        backSizeSeekBar.setOnSeekBarChangeListener(simpleSeekBarListener { progress ->
+            AppPrefs.setBackSize(this, 40 + progress)
+            updateBackPreview()
+            sendBackRefreshIntent()
+        })
+    }
+
+    private fun updateBackPreview() {
+        val bgColor = AppPrefs.getBackBgColor(this)
+        val fgColor = AppPrefs.getBackFgColor(this)
+        val iconAlpha = AppPrefs.getBackIconAlpha(this)
+        val bgAlpha = AppPrefs.getBackBgAlpha(this)
+        val sizeDp = AppPrefs.getBackSize(this)
+        val sizePx = (sizeDp * resources.displayMetrics.density).toInt()
+        val iconPadding = (sizePx * 0.22f).toInt()
+
+        backPreviewButton.setImageDrawable(
+            ContextCompat.getDrawable(this, R.drawable.ic_back)?.mutate()
+        )
+        val colorWithAlpha = (bgAlpha shl 24) or (bgColor and 0x00FFFFFF)
+        backPreviewButton.background = GradientDrawable().apply {
+            shape = GradientDrawable.OVAL
+            setColor(colorWithAlpha)
+        }
+        backPreviewButton.imageAlpha = iconAlpha
+        backPreviewButton.alpha = 1.0f
+        backPreviewButton.setColorFilter(fgColor, PorterDuff.Mode.SRC_IN)
+        backPreviewButton.setPadding(iconPadding, iconPadding, iconPadding, iconPadding)
+        backPreviewButton.layoutParams = backPreviewButton.layoutParams.apply {
+            width = sizePx
+            height = sizePx
+        }
+    }
+
+    private fun updateBackButtonUI() {
+        val enabled = AppPrefs.isBackEnabled(this)
+        val serviceRunning = isAccessibilityServiceEnabled()
+
+        backSettingsContainer.visibility = if (enabled) View.VISIBLE else View.GONE
+        backPreviewButton.visibility = if (enabled) View.VISIBLE else View.GONE
+
+        if (enabled && !serviceRunning) {
+            backAccessibilityStatus.text = getString(R.string.back_accessibility_needed)
+            backAccessibilityStatus.visibility = View.VISIBLE
+            btnGrantAccessibility.visibility = View.VISIBLE
+        } else {
+            backAccessibilityStatus.visibility = View.GONE
+            btnGrantAccessibility.visibility = View.GONE
+        }
+    }
+
+    private fun isAccessibilityServiceEnabled(): Boolean {
+        val expectedComponent = ComponentName(this, BackButtonAccessibilityService::class.java)
+        val enabledServices = Settings.Secure.getString(
+            contentResolver,
+            Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES
+        ) ?: return false
+        return enabledServices.split(':').any {
+            ComponentName.unflattenFromString(it) == expectedComponent
+        }
+    }
+
+    private fun sendBackRefreshIntent() {
+        BackButtonAccessibilityService.instance?.refreshButton()
+    }
+
+    // --- 工具方法 ---
+
+    private fun simpleSeekBarListener(onProgress: (Int) -> Unit): SeekBar.OnSeekBarChangeListener {
+        return object : SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) {
-                if (!fromUser) return
-                val sizeDp = 40 + progress
-                AppPrefs.setSize(this@MainActivity, sizeDp)
-                updatePreview()
-                sendRefreshIntent()
+                if (fromUser) onProgress(progress)
             }
-
             override fun onStartTrackingTouch(seekBar: SeekBar?) {}
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-        })
+        }
     }
 }

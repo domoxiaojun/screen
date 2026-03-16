@@ -44,7 +44,7 @@
             android:paddingEnd="32dp"
             android:layout_marginBottom="32dp" />
 
-        <!-- 个性化设置 -->
+        <!-- ===== 亮度按钮设置 ===== -->
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
@@ -115,19 +115,34 @@
             android:gravity="center_vertical"
             android:layout_marginBottom="16dp" />
 
-        <!-- 按钮透明度 -->
+        <!-- 图标透明度 -->
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/settings_alpha"
+            android:text="@string/settings_icon_alpha"
             android:textSize="14sp"
             android:layout_marginBottom="8dp" />
 
         <SeekBar
-            android:id="@+id/alpha_seekbar"
+            android:id="@+id/icon_alpha_seekbar"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:max="80"
+            android:max="255"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 背景透明度 -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/settings_bg_alpha"
+            android:textSize="14sp"
+            android:layout_marginBottom="8dp" />
+
+        <SeekBar
+            android:id="@+id/bg_alpha_seekbar"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:max="255"
             android:layout_marginBottom="16dp" />
 
         <!-- 按钮大小 -->
@@ -144,6 +159,150 @@
             android:layout_height="wrap_content"
             android:max="40"
             android:layout_marginBottom="32dp" />
+
+        <!-- ===== 返回按钮设置 ===== -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="?android:attr/listDivider"
+            android:layout_marginBottom="24dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/back_settings_title"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:layout_marginBottom="8dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/back_btn_hint"
+            android:textSize="12sp"
+            android:textColor="?android:attr/textColorSecondary"
+            android:layout_marginBottom="16dp" />
+
+        <!-- 启用开关 -->
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/back_btn_switch"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/back_btn_enable"
+            android:layout_marginBottom="12dp" />
+
+        <!-- 无障碍状态 -->
+        <TextView
+            android:id="@+id/back_accessibility_status"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:textSize="14sp"
+            android:textColor="#FF9800"
+            android:layout_marginBottom="8dp"
+            android:visibility="gone" />
+
+        <Button
+            android:id="@+id/btn_grant_accessibility"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/btn_grant_accessibility"
+            android:layout_marginBottom="16dp"
+            android:visibility="gone" />
+
+        <!-- 返回按钮预览 -->
+        <ImageView
+            android:id="@+id/back_preview_button"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:scaleType="fitCenter"
+            android:layout_marginBottom="24dp" />
+
+        <!-- 返回按钮设置容器（启用后才可见） -->
+        <LinearLayout
+            android:id="@+id/back_settings_container"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:visibility="gone">
+
+            <!-- 背景颜色 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/back_settings_bg_color"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/back_bg_color_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 图标颜色 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/back_settings_fg_color"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <LinearLayout
+                android:id="@+id/back_fg_color_row"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 图标透明度 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/back_settings_icon_alpha"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <SeekBar
+                android:id="@+id/back_icon_alpha_seekbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="255"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 背景透明度 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/back_settings_bg_alpha"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <SeekBar
+                android:id="@+id/back_bg_alpha_seekbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="255"
+                android:layout_marginBottom="16dp" />
+
+            <!-- 按钮大小 -->
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/back_settings_size"
+                android:textSize="14sp"
+                android:layout_marginBottom="8dp" />
+
+            <SeekBar
+                android:id="@+id/back_size_seekbar"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="40"
+                android:layout_marginBottom="32dp" />
+
+        </LinearLayout>
 
     </LinearLayout>
 </ScrollView>
